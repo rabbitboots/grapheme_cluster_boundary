@@ -1,7 +1,5 @@
 -- (PROTOTYPE)
 
-require("lib.strict")
-
 --[[
 Grapheme cluster break routines.
 
