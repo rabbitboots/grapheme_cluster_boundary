@@ -1,4 +1,4 @@
-MIT License
+The files in 'res' are 3rd party (fonts and Unicode data), and contain their own licenses (Open Font License; Unicode license for Data Files and Software). The rest of this package is covered by the MIT License:
 
 Copyright (c) 2023 RBTS
 
