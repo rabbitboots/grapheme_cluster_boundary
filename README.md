@@ -2,12 +2,14 @@
 
 # grapheme\_cluster\_boundary
 
-Provides functions to detect the boundaries of grapheme clusters in LÖVE.
+Provides functions to detect the boundaries of grapheme clusters in Unicode strings. It uses the simplified algorithm from the Unicode [Grapheme Break Chart](https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakTest.html) page, which is based on the [algorithm in UAX #29](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries).
 
-User-percieved characters in Unicode can be made up of multiple code points. Several rules determine where one UPC ends and the next begins. More info [here](https://unicode.org/reports/tr29/).
+The intended environment is [LÖVE](https://github.com/love2d/love), versions 11.4 or 12.0-development.
+
+Note that this does not provide 100% coverage of all graphemes / ligatures in all languages. See [UAX #29, Section 6.5, Tailoring](https://unicode.org/reports/tr29/#Tailoring) for more info.
 
 
-## What's this for?
+## What's This For?
 
 One common use case is placement of a text cursor, which should (usually) move to the boundaries between grapheme clusters.
 
@@ -60,7 +62,7 @@ end
 
 ## License
 
-MIT License
+The files in `res` are 3rd party (fonts and Unicode data), and contain their own licenses (Open Font License; Unicode license for Data Files and Software). The rest of this package is covered by the MIT License:
 
 Copyright (c) 2023 RBTS
 
