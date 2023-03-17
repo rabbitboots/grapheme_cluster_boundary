@@ -115,11 +115,50 @@ function gBound.stepCluster(str, pos)
 end
 
 
+-- XXX unfinished -- the idea is to give an easy-to-use function to developers of tailor
+-- methods for stepping backwards through the string.
+--[[
+function gBound.backCode(str, pos)
+
+	local j = utf8.offset(str, -1, pos)
+	if j then
+		return uft8.codepoint(str, j), j
+
+	else
+		return nil
+	end
+end
+--]]
+
+
+--- Breaks a string into a sequence of strings by grapheme cluster. Intended mainly for testing.
+-- @param str The string to break up.
+-- @param tailor Optional sequence of tailoring functions
+-- @return The chunked-up table of sub-strings.
+function gBound.breakString(str, tailor)
+
+	local tbl = {}
+	local p1 = 1
+
+	for p, c in utf8.codes(str) do
+		local breaking, new_pos, reason = gBound.checkBreak(str, p, tailor)
+		if breaking then
+			table.insert(tbl, string.sub(str, p1, new_pos - 1))
+			p1 = new_pos
+		end
+	end
+
+	return tbl
+end
+
+
 --- Check for a grapheme cluster boundary between two code points in 'str', beginning at 'pos'.
 -- @param str The string to check.
 -- @param pos Current byte position in the sequence.
+-- @param tailor Table of tailoring functions, called in a loop between rules 0.3 and 3.0. See README.md,
+--	'Experimental Tailoring Support' for more info.
 -- @return True if there should be a break, false if not, plus the pos value immediately after the sequence.
-function gBound.checkBreak(str, pos)
+function gBound.checkBreak(str, pos, tailor)
 
 	-- Uses the simplified rules from the Unicode Grapheme Break Chart page:
 	-- https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/GraphemeBreakTest.html#rules
@@ -148,6 +187,28 @@ function gBound.checkBreak(str, pos)
 	-- 0.3: ÷ eot
 	else
 		return true, #str + 1 --[[DBG]] , "0.3"
+	end
+
+	-- Check tailoring rules
+	if tailor then
+		for i, func in ipairs(tailor) do
+			--[[
+			local result = func(str, a, b, pos)
+			--]]
+			-- DBG
+			-- [[
+			local result, rule = func(str, a, b, pos)
+			--]]
+			if result == true then
+				return true, pos + step --[[DBG]] , rule
+
+			elseif result == false then
+				return false, pos + step --[[DBG]] , rule
+
+			elseif result ~= nil then
+				error("bad return value for tailoring function test (expected true/false/nil, got type: " .. type(result))
+			end
+		end
 	end
 
 	local gb = grapheme_breaks
@@ -217,7 +278,6 @@ function gBound.checkBreak(str, pos)
 
 		local p --previous code point(s)
 		local j = utf8.offset(str, -1, pos) -- index stepping backwards. (Becomes nil when stepping back from 1.)
-		local back_step -- how many bytes to step backwards per code point
 
 		-- 11.0: ExtPict Extend* ZWJ × ExtPict
 		-- (Extend* means 0 or more Extend code points)

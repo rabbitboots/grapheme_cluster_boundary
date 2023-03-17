@@ -60,6 +60,16 @@ end
 --]]
 ```
 
+
+## Experimental Tailoring Support
+
+For the third argument of `gBound.checkBreak()`, you may pass a sequence of functions to implement custom rules for tailoring. Functions are run in order between the built-in rules 0.3 and 3.0. The function signature is `function(str, a, b, pos)`, where `str` is the string being checked, `a` is the first code point, `b` is the second code point, and `pos` is the byte index of `a` within `str`.
+
+The tailoring functions return `true` to indicate that there should be a break (`÷`), `false` to indicate that there should *not* be a break (`×`), or `nil` to continue with further tests.
+
+`main.lua` implements the three example tailorings shown in [UAX #29 Table 1a. Sample Grapheme Clusters](https://unicode.org/reports/tr29/#Table_Sample_Grapheme_Clusters), in demo page 3.
+
+
 ## License
 
 The files in `res` are 3rd party (fonts and Unicode data), and contain their own licenses (Open Font License; Unicode license for Data Files and Software). The rest of this package is covered by the MIT License:

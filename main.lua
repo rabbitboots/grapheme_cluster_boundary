@@ -76,7 +76,7 @@ end
 -- Pages (states) for the demo.
 -- Page 1: Show results of GraphemeBreakTest.txt
 -- Page 2: Split a few example strings by their boundaries.
-local demo_pages = {}
+-- Page 3: A test of experimental tailoring support.
 local demo_i = 1
 
 local disp = {} -- holds test and result strings for page 1
@@ -96,6 +96,8 @@ local p2_str = {
 -- Break page 2 strings into clusters
 local p2_split = {}
 for i, str in ipairs(p2_str) do
+	--local seq = gBound.breakString(str)
+	-- [[
 	local seq = {}
 	local p1 = 1
 	for p, c in utf8.codes(str) do
@@ -105,7 +107,7 @@ for i, str in ipairs(p2_str) do
 			p1 = new_pos
 		end
 	end
-
+	--]]
 	table.insert(p2_split, seq)
 end
 
@@ -314,7 +316,7 @@ function love.keypressed(kc, sc)
 	if kc == "escape" then
 		love.event.quit()
 
-	elseif kc == "1" or kc == "2" then
+	elseif kc == "1" or kc == "2" or kc == "3" then
 		demo_i = tonumber(kc)
 
 	elseif demo_i == 1 then
@@ -355,6 +357,86 @@ for i, test in ipairs(demo_tests) do
 	})
 	disp_n[i] = test.line_n
 end
+
+-- Page 3: populate tailoring test
+-- See last section of this table:
+-- https://unicode.org/reports/tr29/#Table_Sample_Grapheme_Clusters
+local tailor = {} -- XXX: Help Wanted
+
+-- 1: Slovak ch digraph
+local t1a = {[0x63] = "c", [0x43] = "C"}
+local t1b = {[0x68] = "h", [0x48] = "H"}
+tailor[1] = function(str, a, b, pos)
+
+	if t1a[a] and t1b[b] then -- (c|C)(h|H)
+		return false
+	end
+end
+
+
+-- 2: sequence with modifier letter
+tailor[2] = function(str, a, b, pos)
+
+	if a == 0x6b and b == 0x2b7 then -- kʷ
+		return false
+	end
+end
+
+
+-- 3: Devanagari kshi
+-- Devanagari Letters
+local t3_let = {
+	0x904,0x939, 0x93d,0x93d, 0x950,0x950, 0x958,0x961, 0x972,0x97f, 0xa8f2,0xa8f7,
+	0xa8fb,0xa8fb, 0xa8fd,0xa8fe,
+}
+-- Devenagari Vowels
+local t3_vow = {
+	0x903,0x903, 0x93b,0x93b, 0x93e,0x940, 0x949,0x94c, 0x94e,0x94f,
+}
+-- Devanagari Virama
+local t3_vir = 0x94d
+
+tailor[3] = function(str, a, b, pos)
+
+	local has = gBound.checkLUT
+
+	--[[
+	https://stackoverflow.com/questions/6805311/combining-devanagari-characters
+	LETTER (VIRAMA LETTER)* VOWEL?
+
+	https://github.com/nota/split-graphemes/blob/master/src/devanagari.js
+	export const devanagari = `${letter}(${control}${letter}|${trailingLetter})*`
+	--]]
+
+	-- a == letter and (b == virama or b == vowel) -> don't break
+	if has(t3_let, a) and (b == t3_vir or has(t3_vow, b)) then
+		return false
+
+	-- a == virama and b == letter -> don't break
+	elseif a == t3_vir and has(t3_let, b) then
+		return false
+
+	-- a == vowel -> break
+	elseif has(t3_vow, a) then
+		return true
+	end
+
+	return nil
+end
+
+local t_test = {}
+
+local tt1 = "Choo choo"
+local tt2 = "kʷ kʷ kw Kʷ"
+local tt3 = "क्षि"
+local tt4 = "अनुच्छेद"
+
+t_test[1] = {str = tt1, chunks = gBound.breakString(tt1, tailor)}
+t_test[2] = {str = tt2, chunks = gBound.breakString(tt2, tailor)} -- last two should not be clustered
+t_test[3] = {str = tt3, chunks = gBound.breakString(tt3, tailor)} -- ( क ) 0915 ( ् ) 094D ( ष ) 0937 ( ि ) 093F
+
+-- https://github.com/orling/grapheme-splitter/issues/26
+t_test[4] = {str = tt4, chunks = gBound.breakString(tt4, tailor)} -- अनुच्छेद => अ नु च्छे द
 
 
 local c1 = {0.55, 0.55, 0.55, 1.00}
@@ -437,6 +519,23 @@ function love.draw()
 			end
 			qp:down()
 		end
+
+	elseif demo_i == 3 then
+		for i, test in ipairs(t_test) do
+			qp:write(test.str)
+			qp:setXPosition(math.floor(win_w/2))
+
+			love.graphics.setColor(c1)
+			qp:write("|")
+			love.graphics.setColor(c2)
+			for j, chunk in ipairs(test.chunks) do
+				qp:write(chunk)
+				love.graphics.setColor(c1)
+				qp:write("|")
+				love.graphics.setColor(c2)
+			end
+			qp:down()
+		end
 	end
 
 	-- UI
@@ -447,9 +546,16 @@ function love.draw()
 	love.graphics.setColor(0, 0, 0, 0.9)
 	love.graphics.rectangle("fill", 0, math.floor(win_h - inst_h*1.125), win_w, inst_h + 11)
 	love.graphics.setColor(1, 1, 1, 1)
-	qp:write("Demo Page (1,2): ", demo_i, "\t")
+	qp:write("Demo Page (1,2,3): ", demo_i)
 	if demo_i == 1 then
+		qp:write(" (BreakTest)\t")
 		qp:write("Up/Down/PgUp/PgDn/Home/End: Scroll\t")
+
+	elseif demo_i == 2 then
+		qp:write(" (Combining accent, Emoji, Regional Indicators)\t")
+
+	elseif demo_i == 3 then
+		qp:write(" (Experimental Tailoring)\t")
 	end
 	qp:write("Esc: quit")
 end
