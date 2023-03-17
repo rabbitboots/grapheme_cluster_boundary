@@ -67,7 +67,7 @@ For the third argument of `gBound.checkBreak()`, you may pass a sequence of func
 
 The tailoring functions return `true` to indicate that there should be a break (`÷`), `false` to indicate that there should *not* be a break (`×`), or `nil` to continue with further tests.
 
-`main.lua` implements the three example tailorings shown in [UAX #29 Table 1a. Sample Grapheme Clusters](https://unicode.org/reports/tr29/#Table_Sample_Grapheme_Clusters), in demo page 3.
+`main.lua`'s third screen implements the example tailorings in [UAX #29 Table 1a. Sample Grapheme Clusters](https://unicode.org/reports/tr29/#Table_Sample_Grapheme_Clusters).
 
 
 ## License
